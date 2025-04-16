@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")
 }
 
 android {
@@ -93,5 +94,27 @@ dependencies {
 
     // ✅ Material Icons (optional)
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
+
+    // version [2]
+    // Room
+    implementation ("androidx.room:room-runtime:2.6.1")
+    kapt ("androidx.room:room-compiler:2.6.1")
+    implementation ("androidx.room:room-ktx:2.6.1")
+
+// Coroutines
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+// Kotlin annotation processor (for Room)
+    kapt ("androidx.lifecycle:lifecycle-compiler:2.6.2")
+
+    //Sockets v_2_c_2
+    implementation("io.socket:socket.io-client:2.0.0") {
+        exclude (
+            group = "org.json",
+            module = "json"
+        )
+    }
+    implementation("com.google.code.gson:gson:2.10.1")
 
 }
