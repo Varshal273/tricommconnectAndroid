@@ -14,99 +14,95 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tricommconnect_v1.data.model.Message
+import com.example.tricommconnect_v1.viewmodel.MessageViewModel
+import com.example.tricommconnect_v1.viewmodel.MessageListState // this line is modified/change
 import com.example.tricommconnect_v1.viewmodel.RemoteMessageState
 import com.example.tricommconnect_v1.viewmodel.RemoteMessageViewModel
+import com.example.tricommconnect_v1.viewmodel.SendState
+
 
 @Composable
 fun ChatScreen(
     chatId: String,
     senderId: String,
-    viewModel: RemoteMessageViewModel = viewModel()
+    viewModel: MessageViewModel = viewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    // ✏️ Debug
+    Text(text = "DEBUG: chatId = $chatId, senderId = $senderId")
 
+    val listState by viewModel.messageListState.collectAsState()
+    val sendState by viewModel.sendState.collectAsState()
     var messageText by remember { mutableStateOf("") }
 
-    LaunchedEffect(chatId) {
-        viewModel.fetchMessages(chatId)
-    }
+    LaunchedEffect(chatId) { viewModel.observeMessages(chatId) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        when (val s = state) {
-            is RemoteMessageState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            is RemoteMessageState.Error -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: ${s.error}")
-                }
-            }
-
-            is RemoteMessageState.Success -> {
+    Column(Modifier.fillMaxSize()) {
+        // Always show messages if we have them
+        when (listState) {
+            is MessageListState.Success -> {
+                val msgs = (listState as MessageListState.Success).messages
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp),
+                    Modifier.weight(1f).padding(8.dp),
                     reverseLayout = true
                 ) {
-                    items(s.messages.reversed()) { message ->
-                        MessageBubble(message, isOwnMessage = message.senderUserId?._id == senderId)
+                    items(msgs.reversed()) { m ->
+                        MessageBubble(
+                            message = m,
+                            isOwnMessage = m.senderUserId?._id == senderId
+                        )
                     }
                 }
             }
-
-            is RemoteMessageState.Sent -> {
-                // Optionally trigger a UI update
-                viewModel.fetchMessages(chatId)
-                viewModel.resetState()
+            is MessageListState.Loading -> {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-
-            else -> {}
+            is MessageListState.Error -> {
+                Text(
+                    text = "Error loading: ${(listState as MessageListState.Error).error}",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
 
+        // Input row
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .padding(8.dp)
+            Modifier
                 .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             BasicTextField(
                 value = messageText,
                 onValueChange = { messageText = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(8.dp)
-                    .heightIn(min = 48.dp),
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (messageText.isEmpty()) {
-                            Text("Type a message...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-                        }
-                        innerTextField()
-                    }
-                }
+                modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface).size(50.dp)
             )
-
             IconButton(onClick = {
-                if (messageText.isNotBlank()) {
-                    viewModel.sendMessage(chatId, senderId, messageText)
-                    messageText = ""
-                }
+                viewModel.sendMessage(chatId, senderId, messageText)
+                messageText = ""
             }) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
+                Icon(Icons.Filled.Send, contentDescription = "Send")
             }
+        }
+
+        // Show send‑status feedback (optional)
+        when (sendState) {
+            is SendState.Sending -> Text("Sending…", Modifier.padding(8.dp))
+            is SendState.Error -> Text("error")
+            else -> { /* Idle or Sent – nothing to show */ }
+        }
+    }
+
+    // Reset send indicator once we’ve shown it
+    LaunchedEffect(sendState) {
+        if (sendState is SendState.Sent || sendState is SendState.Error) {
+            viewModel.resetSendState()
         }
     }
 }
+
 
 @Composable
 fun MessageBubble(message: Message, isOwnMessage: Boolean) {
@@ -125,7 +121,10 @@ fun MessageBubble(message: Message, isOwnMessage: Boolean) {
             modifier = Modifier.padding(horizontal = 8.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(text = message.msgBody, color = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    text = message.msgBody,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
                 Text(
                     text = message.time.toString(),
                     style = MaterialTheme.typography.labelSmall,

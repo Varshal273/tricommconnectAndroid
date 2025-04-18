@@ -8,6 +8,7 @@ data class MessageEntity(
     @PrimaryKey val messageId: String,
     val chatId: String,
     val senderId: String,
+    val senderUsername: String? = null, // 👈 Added
     val content: String,
     val timestamp: Long,
     val status: MessageStatus = MessageStatus.PENDING
@@ -16,5 +17,6 @@ data class MessageEntity(
 enum class MessageStatus {
     SENT,
     PENDING,
-    FAILED
+    FAILED,
+    RECEIVED
 }

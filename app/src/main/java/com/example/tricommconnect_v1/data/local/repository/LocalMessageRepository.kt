@@ -27,4 +27,12 @@ class LocalMessageRepository(
     suspend fun deleteAllMessages() {
         messageDao.deleteAllMessages()
     }
+
+    suspend fun getPendingMessages(): List<MessageEntity> {
+        return messageDao.getPendingMessages()
+    }
+
+    suspend fun getMessagesForChatOnce(chatId: String): List<MessageEntity> {
+        return messageDao.getMessagesOnce(chatId)
+    }
 }

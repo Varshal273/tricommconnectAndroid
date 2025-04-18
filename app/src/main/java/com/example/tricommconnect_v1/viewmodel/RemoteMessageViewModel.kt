@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tricommconnect_v1.data.model.Message
 import com.example.tricommconnect_v1.data.remote.repository.RemoteMessageRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import com.example.tricommconnect_v1.data.local.dao.MessageDao
+import com.example.tricommconnect_v1.data.local.mapper.toEntity
+import com.example.tricommconnect_v1.data.local.mapper.toModel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 sealed class RemoteMessageState {
@@ -17,7 +19,8 @@ sealed class RemoteMessageState {
 }
 
 class RemoteMessageViewModel(
-    private val repository: RemoteMessageRepository
+    private val remoteRepo: RemoteMessageRepository,
+    private val messageDao: MessageDao
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<RemoteMessageState>(RemoteMessageState.Idle)
@@ -26,11 +29,24 @@ class RemoteMessageViewModel(
     fun fetchMessages(chatId: String) {
         viewModelScope.launch {
             _state.value = RemoteMessageState.Loading
+
+            // 1. Observe local messages immediately (offline-first)
+            messageDao.getMessagesForChat(chatId).collect { localMessages ->
+                val messages = localMessages.map { it.toModel() }
+                _state.value = RemoteMessageState.Success(messages)
+            }
+        }
+
+        // 2. Sync from API and update Room
+        viewModelScope.launch {
             try {
-                val result = repository.fetchMessages(chatId)
-                _state.value = RemoteMessageState.Success(result)
+                val remoteMessages = remoteRepo.fetchMessages(chatId)
+                if (remoteMessages.isNotEmpty()) {
+                    messageDao.insertMessages(remoteMessages.map { it.toEntity() })
+                }
             } catch (e: Exception) {
-                _state.value = RemoteMessageState.Error(e.message ?: "Unknown error")
+                e.printStackTrace()
+                // Don't override UI — we already loaded from Room
             }
         }
     }
@@ -39,8 +55,13 @@ class RemoteMessageViewModel(
         viewModelScope.launch {
             _state.value = RemoteMessageState.Loading
             try {
-                val result = repository.sendMessage(chatId, senderId, message)
-                _state.value = RemoteMessageState.Sent(result!!)
+                val result = remoteRepo.sendMessage(chatId, senderId, message)
+                if (result != null) {
+                    messageDao.insertMessage(result.toEntity())
+                    _state.value = RemoteMessageState.Sent(result)
+                } else {
+                    _state.value = RemoteMessageState.Error("Message response was null")
+                }
             } catch (e: Exception) {
                 _state.value = RemoteMessageState.Error(e.message ?: "Failed to send message")
             }

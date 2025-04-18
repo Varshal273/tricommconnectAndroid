@@ -18,7 +18,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.tricommconnect_v1.data.local.dao.MessageDao
 import com.example.tricommconnect_v1.data.preferences.UserPreferences
+import com.example.tricommconnect_v1.data.remote.repository.RemoteMessageRepository
 import com.example.tricommconnect_v1.data.repository.ChatRepository
 import com.example.tricommconnect_v1.network.RetrofitInstance
 import com.example.tricommconnect_v1.ui.chat.ChatScreen
@@ -27,11 +29,24 @@ import com.example.tricommconnect_v1.ui.login.LoginScreen
 import com.example.tricommconnect_v1.ui.theme.TriCommConnect_V1Theme
 import com.example.tricommconnect_v1.viewmodel.ChatListViewModel
 import com.example.tricommconnect_v1.viewmodel.LoginViewModel
+import com.example.tricommconnect_v1.viewmodel.RemoteMessageViewModel
 import com.example.tricommconnect_v1.viewmodel.StartupViewModel
+import com.example.tricommconnect_v1.data.local.db.LocalDatabaseProvider
+import com.example.tricommconnect_v1.data.repository.MessageRepository
+import com.example.tricommconnect_v1.network.socket.MessageSocketHandler
+import com.example.tricommconnect_v1.viewmodel.MessageViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 1. Create & connect
+        socketHandler = MessageSocketHandler(
+            baseUrl      = YOUR_SOCKET_URL,
+            authToken    = userPrefs.getAuthToken(),  // if you need auth
+            onConnect    = { /* optional: subscribe to channels */ },
+            onDisconnect = { /* optional */ }
+        )
+        socketHandler.connect()
         enableEdgeToEdge()
         setContent {
             TriCommConnect_V1Theme {
@@ -63,12 +78,18 @@ fun AppNavigator() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val prefs = remember { UserPreferences(context) }
-    val repo = remember { ChatRepository(RetrofitInstance.api) }
+    val chatDao = remember { LocalDatabaseProvider.provideChatDao(context) }
+    val messageDao = remember { LocalDatabaseProvider.provideMessageDao(context) }
+    val repo = remember { ChatRepository(RetrofitInstance.api,chatDao) }
+    val remoteRepo = RemoteMessageRepository(RetrofitInstance.api,) // or however you're creating it // Version_2_Cycle_2
+    val messageRepository = remember { MessageRepository(RetrofitInstance.api, messageDao) } // this line is modified/change
+
+
     val startupViewModel = remember { StartupViewModel(prefs) }
     val startDestination by startupViewModel.startDestination.collectAsState()
     // Only build navigation graph once the destination is known
     if (startDestination != null) {
-        NavigationGraph(navController, startDestination!!, prefs, repo)
+        NavigationGraph(navController, startDestination!!, prefs, repo, messageRepository) // this line is modified/change
     }
 }
 
@@ -77,7 +98,8 @@ fun NavigationGraph(
     navController: NavHostController,
     startDestination: String,
     prefs: UserPreferences,
-    repo: ChatRepository
+    repo: ChatRepository,
+    messageRepository: MessageRepository // this line is modified/change
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
@@ -90,7 +112,7 @@ fun NavigationGraph(
         }
         composable("chatlist") {
             val vm = remember { ChatListViewModel(repo, prefs) }
-            ChatListScreen(vm)
+            ChatListScreen(vm,navController = navController)
         }
         composable(
             "chat/{chatId}/{senderId}",
@@ -101,7 +123,11 @@ fun NavigationGraph(
         ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             val senderId = backStackEntry.arguments?.getString("senderId") ?: ""
-            ChatScreen(chatId = chatId, senderId = senderId)
+            ChatScreen(
+                chatId = chatId,
+                senderId = senderId,
+                viewModel = remember { MessageViewModel(messageRepository) } // this line is modified/change
+            )
         }
     }
 }
