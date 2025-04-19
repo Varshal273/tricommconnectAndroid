@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.tracing.perfetto.handshake)
+    implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -97,7 +98,7 @@ dependencies {
     // version [2]
     // Room
     implementation ("androidx.room:room-runtime:2.6.1")
-    kapt ("androidx.room:room-compiler:2.6.1")
+    kapt ("androidx.room:room-compiler:2.7.0")
     implementation ("androidx.room:room-ktx:2.6.1")
 
 // Coroutines
@@ -108,6 +109,7 @@ dependencies {
     kapt ("androidx.lifecycle:lifecycle-compiler:2.6.2")
 
     //Sockets v_2_c_2
+    // https://mvnrepository.com/artifact/io.socket/socket.io-client
     implementation("io.socket:socket.io-client:2.0.0") {
         exclude (
             group = "org.json",

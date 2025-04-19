@@ -1,6 +1,8 @@
 package com.example.tricommconnect_v1.data.repository
 
+import android.content.Context
 import com.example.tricommconnect_v1.data.local.dao.ChatDao
+import com.example.tricommconnect_v1.data.local.db.AppDatabase
 import com.example.tricommconnect_v1.data.local.entity.ChatEntity
 import com.example.tricommconnect_v1.data.model.Chat
 import com.example.tricommconnect_v1.data.model.LoginRequest
@@ -9,6 +11,8 @@ import com.example.tricommconnect_v1.network.ApiService
 import kotlinx.coroutines.flow.first // ✅ Added
 import kotlinx.coroutines.flow.map
 import com.example.tricommconnect_v1.data.local.mapper.toChat
+import com.example.tricommconnect_v1.network.RetrofitInstance
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
 
@@ -43,6 +47,29 @@ class ChatRepository(
     suspend fun getLocalChats(): List<ChatEntity> {
         return chatDao.getAllChats().firstOrNull() ?: emptyList() // ✅ Convert Flow to List
     }
+
+    // version_3
+    suspend fun updateChatPreview(chatId: String, lastMessage: String, updatedAt: String) {
+        chatDao.updateChatPreview(chatId, lastMessage, updatedAt)
+    }
+
+    fun getLocalChatsFlow(): Flow<List<ChatEntity>> {
+        return chatDao.getAllChatsFlow()
+    }
+    companion object {
+        @Volatile
+        private var INSTANCE: ChatRepository? = null
+
+        fun getInstance(context: Context): ChatRepository {
+            return INSTANCE ?: synchronized(this) {
+                val db = AppDatabase.getInstance(context)
+                val api = RetrofitInstance.api
+                val dao = db.chatDao()
+                INSTANCE ?: ChatRepository(api, dao).also { INSTANCE = it }
+            }
+        }
+    }
+
 }
 
 // this is before version 2
