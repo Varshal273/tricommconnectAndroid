@@ -39,14 +39,6 @@ import com.example.tricommconnect_v1.viewmodel.MessageViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 1. Create & connect
-        socketHandler = MessageSocketHandler(
-            baseUrl      = YOUR_SOCKET_URL,
-            authToken    = userPrefs.getAuthToken(),  // if you need auth
-            onConnect    = { /* optional: subscribe to channels */ },
-            onDisconnect = { /* optional */ }
-        )
-        socketHandler.connect()
         enableEdgeToEdge()
         setContent {
             TriCommConnect_V1Theme {

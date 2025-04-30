@@ -43,6 +43,12 @@ class ChatRepository(
     suspend fun getLocalChats(): List<ChatEntity> {
         return chatDao.getAllChats().firstOrNull() ?: emptyList() // ✅ Convert Flow to List
     }
+
+    suspend fun saveChatsToLocal(chats: List<Chat>) {
+        val entities = chats.map { ChatEntity.fromChat(it) }
+        chatDao.insertChats(entities)
+    }
+
 }
 
 // this is before version 2

@@ -1,5 +1,6 @@
 package com.example.tricommconnect_v1.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import com.example.tricommconnect_v1.data.model.Chat
 import com.example.tricommconnect_v1.data.model.LastMessage
 import com.example.tricommconnect_v1.data.model.UserChat
 import com.example.tricommconnect_v1.data.local.mapper.toChat
+import com.example.tricommconnect_v1.network.socket.SocketManager
 
 class ChatListViewModel(
     private val repository: ChatRepository,
@@ -21,6 +23,31 @@ class ChatListViewModel(
     var loading by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var userId: String? = null // ✅ Added: to hold userId from DataStore
+
+    init {
+        observeSocketChatUpdates()
+    }
+
+    private fun observeSocketChatUpdates() {
+        viewModelScope.launch {
+            SocketManager.observeChatUpdates()
+                .collect { incomingChat ->
+                    Log.d("ChatListViewModel", "Received chat_updated: ${incomingChat._id} (${incomingChat.lastMessage?.msgBody})")
+                    try {
+                        // Save to Room via repository
+                        repository.saveChatsToLocal(listOf(incomingChat))
+
+                        // Optional: re-fetch local chats to update UI (if needed)
+                        val localChats = repository.getLocalChats()
+                        chatList = localChats.map { it.toChat() }
+
+                    } catch (e: Exception) {
+                        Log.e("ChatListViewModel", "Failed to update chat: ${e.message}", e)
+                    }
+                }
+        }
+    }
+
 
     fun loadChats() {
         viewModelScope.launch {

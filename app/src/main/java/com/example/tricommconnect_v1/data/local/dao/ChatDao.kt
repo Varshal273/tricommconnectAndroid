@@ -15,4 +15,5 @@ interface ChatDao {
     @Query("DELETE FROM chats")
     suspend fun clearChats()
 
+
 }

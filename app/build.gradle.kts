@@ -108,7 +108,7 @@ dependencies {
     kapt ("androidx.lifecycle:lifecycle-compiler:2.6.2")
 
     //Sockets v_2_c_2
-    implementation("io.socket:socket.io-client:2.0.0") {
+    implementation("io.socket:socket.io-client:2.1.2") {
         exclude (
             group = "org.json",
             module = "json"
@@ -116,4 +116,7 @@ dependencies {
     }
     implementation("com.google.code.gson:gson:2.10.1")
 
+    //ProcessLifecycleOwner
+    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 }

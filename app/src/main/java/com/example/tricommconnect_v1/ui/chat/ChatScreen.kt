@@ -19,6 +19,7 @@ import com.example.tricommconnect_v1.viewmodel.MessageListState // this line is 
 import com.example.tricommconnect_v1.viewmodel.RemoteMessageState
 import com.example.tricommconnect_v1.viewmodel.RemoteMessageViewModel
 import com.example.tricommconnect_v1.viewmodel.SendState
+import android.util.Log
 
 
 @Composable
@@ -45,7 +46,11 @@ fun ChatScreen(
                     Modifier.weight(1f).padding(8.dp),
                     reverseLayout = true
                 ) {
-                    items(msgs.reversed()) { m ->
+                    items(
+                        msgs.reversed(),
+                        key = { it._id ?: it.time }  // 🛠️ this avoids recomposition bugs
+                    ) { m ->
+                        Log.d("ChatScreen", "📨 Displaying message: ${m._id} at ${m.time}")
                         MessageBubble(
                             message = m,
                             isOwnMessage = m.senderUserId?._id == senderId

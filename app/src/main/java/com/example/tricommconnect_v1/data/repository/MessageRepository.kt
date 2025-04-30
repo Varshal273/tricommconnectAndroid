@@ -1,5 +1,7 @@
 package com.example.tricommconnect_v1.data.repository
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.tricommconnect_v1.data.local.dao.MessageDao
 import com.example.tricommconnect_v1.data.local.entity.MessageEntity
 import com.example.tricommconnect_v1.data.local.mapper.toEntity
@@ -25,6 +27,7 @@ class MessageRepository(
 //        messageDao.insertMessages(entities)
 //    }
 //
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun saveMessagesToLocal(chatId: String, messages: List<Message>) {
         val entities = messages.map { msg ->
             msg.toEntity().copy(chatId = chatId)

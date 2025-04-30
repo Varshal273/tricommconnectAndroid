@@ -12,3 +12,4 @@ data class SenderUser(
     val _id: String,
     val username: String
 )
+
