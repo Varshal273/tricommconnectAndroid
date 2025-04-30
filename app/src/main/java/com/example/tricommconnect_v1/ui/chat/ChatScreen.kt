@@ -1,5 +1,6 @@
 package com.example.tricommconnect_v1.ui.chat
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,8 +21,10 @@ import com.example.tricommconnect_v1.viewmodel.RemoteMessageState
 import com.example.tricommconnect_v1.viewmodel.RemoteMessageViewModel
 import com.example.tricommconnect_v1.viewmodel.SendState
 import android.util.Log
+import androidx.annotation.RequiresApi
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ChatScreen(
     chatId: String,

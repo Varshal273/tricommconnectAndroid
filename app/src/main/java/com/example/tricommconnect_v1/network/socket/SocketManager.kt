@@ -20,7 +20,7 @@ object SocketManager {
     private var socket: Socket? = null
     private const val SOCKET_URL = "https://organic-meet-monarch.ngrok-free.app" // 🔥 Replace with your backend URL
 
-    private val newMessageFlow = MutableSharedFlow<Message>()
+    private val newMessageFlow = MutableSharedFlow<Message>(replay = 1)
     private val chatUpdateFlow = MutableSharedFlow<Chat>()
 
     fun connect() {
